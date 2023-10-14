@@ -13,7 +13,14 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Repos/ex182761@m.unicamp.br/pipeline-databricks-azure/notebooks/inbound_to_bronze"
+				},
+				"linkedServiceName": {
+					"referenceName": "databrinks_datafactory_link",
+					"type": "LinkedServiceReference"
+				}
 			},
 			{
 				"name": "ingestao-camada-silver",
@@ -33,7 +40,14 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Repos/ex182761@m.unicamp.br/pipeline-databricks-azure/notebooks/bronze_to_silver"
+				},
+				"linkedServiceName": {
+					"referenceName": "databrinks_datafactory_link",
+					"type": "LinkedServiceReference"
+				}
 			}
 		],
 		"annotations": []
