@@ -1,0 +1,136 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Nome do Data Factory",
+			"defaultValue": "databricks-curso"
+		},
+		"databrinks_datafactory_link_accessToken": {
+			"type": "secureString",
+			"metadata": "Cadeia de caracteres segura para 'accessToken' de 'databrinks_datafactory_link'"
+		},
+		"databrinks_datafactory_link_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0925-210057-gr5sj3sd"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/datalake-ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ingestao-camada-bronze",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Repos/ex182761@m.unicamp.br/pipeline-databricks-azure/notebooks/inbound_to_bronze"
+						},
+						"linkedServiceName": {
+							"referenceName": "databrinks_datafactory_link",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "ingestao-camada-silver",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "ingestao-camada-bronze",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Repos/ex182761@m.unicamp.br/pipeline-databricks-azure/notebooks/bronze_to_silver"
+						},
+						"linkedServiceName": {
+							"referenceName": "databrinks_datafactory_link",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/databrinks_datafactory_link')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/databrinks_datafactory_link')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-8348669463085012.12.azuredatabricks.net",
+					"accessToken": {
+						"type": "SecureString",
+						"value": "[parameters('databrinks_datafactory_link_accessToken')]"
+					},
+					"existingClusterId": "[parameters('databrinks_datafactory_link_properties_typeProperties_existingClusterId')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ippeline_trigger')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "datalake-ingestion",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 1,
+						"startTime": "2023-10-14T20:45:00",
+						"endTime": "2023-10-14T20:46:00",
+						"timeZone": "E. South America Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/datalake-ingestion')]"
+			]
+		}
+	]
+}
